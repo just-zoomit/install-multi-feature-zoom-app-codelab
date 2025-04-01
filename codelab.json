@@ -1,0 +1,25 @@
+{
+  "environment": "web",
+  "format": "html",
+  "prefix": "https://storage.googleapis.com",
+  "mainga": "UA-49880327-14",
+  "updated": "2025-04-01T02:45:02-04:00",
+  "id": "how-to-install-a-zoomapp-nextjs",
+  "duration": 0,
+  "title": "Install multi-feature Zoom app integration tutorial: Zoom App and Team Chat",
+  "authors": "Donte",
+  "summary": "How to install Zoom App SDK and Team Chat",
+  "source": "install-zoomapp-chatbot-nextjs..md",
+  "theme": "",
+  "status": [
+    "published"
+  ],
+  "category": [
+    "sample"
+  ],
+  "tags": [
+    "medium"
+  ],
+  "feedback": "https://devforum.zoom.us/c/zoom-apps",
+  "url": "how-to-install-a-zoomapp-nextjs"
+}
