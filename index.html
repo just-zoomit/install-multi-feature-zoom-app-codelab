@@ -28,6 +28,261 @@
                   environment="web"
                   feedback-link="https://devforum.zoom.us/c/zoom-apps">
     
+      <google-codelab-step label="Add Supabase Auth Route" duration="0">
+        <p>Path:</p>
+<pre><code language="language-bash" class="language-bash">app/auth/callback/route.ts
+</code></pre>
+<pre><code language="language-javascript" class="language-javascript">import { NextResponse } from &#39;next/server&#39;
+import { createClient } from &#39;@/utils/supabase/server&#39;
+
+export async function GET(request: Request) {
+  const { searchParams, origin } = new URL(request.url)
+  const code = searchParams.get(&#39;code&#39;)
+  const next = searchParams.get(&#39;next&#39;) ?? &#39;/&#39;
+
+
+  if (code) {
+    const supabase = await createClient()
+    const isLocalEnv = process.env.NODE_ENV === &#39;development&#39;
+    const forwardedHost = &#34;https://&#34; + request.headers.get(&#39;x-forwarded-host&#39;)
+
+    const { error } = await supabase.auth.exchangeCodeForSession(code)
+    if (error) {
+      console.error(error);
+      return NextResponse.redirect(`${forwardedHost}/error`)
+    }
+
+    // When in a local dev environment we may be using Ngrok so we need to check the x-forwarded-host
+    if (isLocalEnv)
+      return NextResponse.redirect(`${forwardedHost}${next}`)
+    else
+      return NextResponse.redirect(`${origin}${next}`)
+  }
+}
+</code></pre>
+<h2 is-upgraded>Add Supabase signin server action</h2>
+<p>Path:</p>
+<pre><code language="language-bash" class="language-bash">app/dashboard/page.tsx
+</code></pre>
+<pre><code language="language-javascript" class="language-javascript">import { createClient } from &#34;@/utils/supabase/server&#34;;
+import { InfoIcon } from &#34;lucide-react&#34;;
+import { redirect } from &#34;next/navigation&#34;;
+
+export default async function DashboardPage() {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return redirect(&#34;/&#34;);
+  }
+
+  return (
+    &lt;div className=&#34;flex-1 w-full flex flex-col gap-12&#34;&gt;
+      &lt;div className=&#34;w-full&#34;&gt;
+        &lt;div className=&#34;bg-accent text-sm p-3 px-5 rounded-md text-foreground flex gap-3 items-center&#34;&gt;
+          &lt;InfoIcon size=&#34;16&#34; strokeWidth={2} /&gt;
+          This is a protected page that you can only see as an authenticated
+          user
+        &lt;/div&gt;
+      &lt;/div&gt;
+      &lt;div className=&#34;flex flex-col gap-2 items-start&#34;&gt;
+        &lt;h2 className=&#34;font-bold text-2xl mb-4&#34;&gt;Your user details&lt;/h2&gt;
+        &lt;pre className=&#34;text-xs font-mono p-3 rounded border max-h-32 overflow-auto&#34;&gt;
+          {JSON.stringify(user, null, 2)}
+        &lt;/pre&gt;
+      &lt;/div&gt;
+
+    &lt;/div&gt;
+  );
+}
+</code></pre>
+<h2 is-upgraded>Add Supabase signin server action</h2>
+<p>Path:</p>
+<pre><code language="language-bash" class="language-bash">app/action.ts
+</code></pre>
+<pre><code language="language-javascript" class="language-javascript">&#34;use server&#34;;
+
+import { encodedRedirect } from &#34;@/utils/utils&#34;;
+import { createClient } from &#34;@/utils/supabase/server&#34;;
+import { headers } from &#34;next/headers&#34;;
+import { redirect } from &#34;next/navigation&#34;;
+
+export const signInWithZoom = async () =&gt; {
+  const supabase = await createClient();
+  const headerList = await headers();
+  const origin = headerList.get(&#34;origin&#34;);
+
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: &#39;zoom&#39;,
+    options: {
+      redirectTo: `${origin}/auth/callback`,
+    },
+  });
+
+  if (error)
+    return encodedRedirect(&#34;error&#34;, &#34;/sign-in&#34;, error.message);
+
+  return redirect(data.url);
+}
+
+export const signOutAction = async () =&gt; {
+  const supabase = await createClient();
+  await supabase.auth.signOut();
+  return redirect(&#34;/&#34;);
+};
+</code></pre>
+<h2 is-upgraded>Add Supabase server</h2>
+<p>Path:</p>
+<pre><code language="language-bash" class="language-bash">supabase/client.ts
+
+</code></pre>
+<p>middleware.ts</p>
+<pre><code language="language-javasript" class="language-javasript">import { createServerClient } from &#34;@supabase/ssr&#34;;
+import { cookies } from &#34;next/headers&#34;;
+
+export const createClient = async () =&gt; {
+  const cookieStore = await cookies();
+
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =&gt; {
+              cookieStore.set(name, value, options);
+            });
+          } catch (error) {
+            // The `set` method was called from a Server Component.
+            // This can be ignored if you have middleware refreshing
+            // user sessions.
+          }
+        },
+      },
+    },
+  );
+};
+</code></pre>
+<h2 is-upgraded>Add Supabase client</h2>
+<p>Path:</p>
+<pre><code language="language-bash" class="language-bash">supabase/client.ts
+
+</code></pre>
+<p>middleware.ts</p>
+<pre><code language="language-javasript" class="language-javasript">import { createBrowserClient } from &#34;@supabase/ssr&#34;;
+
+export const createClient = () =&gt;
+  createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  );
+</code></pre>
+<h2 is-upgraded>Add Supabase middleware</h2>
+<p>Path:</p>
+<pre><code language="language-bash" class="language-bash">supabase/middleware.ts
+
+</code></pre>
+<p>middleware.ts</p>
+<pre><code language="language-javascript" class="language-javascript">import { createServerClient } from &#34;@supabase/ssr&#34;;
+import { type NextRequest, NextResponse } from &#34;next/server&#34;;
+
+export const updateSession = async (request: NextRequest) =&gt; {
+  // This `try/catch` block is only here for the interactive tutorial.
+  // Feel free to remove once you have Supabase connected.
+  try {
+    // Create an unmodified response
+    let response = NextResponse.next({
+      request: {
+        headers: request.headers,
+      },
+    });
+
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll();
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value }) =&gt;
+              request.cookies.set(name, value),
+            );
+            response = NextResponse.next({
+              request,
+            });
+            cookiesToSet.forEach(({ name, value, options }) =&gt;
+              response.cookies.set(name, value, options),
+            );
+          },
+        },
+      },
+    );
+
+    // This will refresh session if expired - required for Server Components
+    // https://supabase.com/docs/guides/auth/server-side/nextjs
+    const user = await supabase.auth.getUser();
+
+    // protected routes
+    if (request.nextUrl.pathname.startsWith(&#34;/dashboard&#34;) &amp;&amp; user.error) {
+      return NextResponse.redirect(new URL(&#34;/&#34;, request.url));
+    }
+
+    if (request.nextUrl.pathname === &#34;/&#34; &amp;&amp; !user.error) {
+      return NextResponse.redirect(new URL(&#34;/dashboard&#34;, request.url));
+    }
+
+    return response;
+  } catch (e) {
+    // If you are here, a Supabase client could not be created!
+    // This is likely because you have not set up environment variables.
+    // Check out http://localhost:3000 for Next Steps.
+    return NextResponse.next({
+      request: {
+        headers: request.headers,
+      },
+    });
+  }
+};
+</code></pre>
+<h2 is-upgraded>Update NextJS config</h2>
+<p>Path:</p>
+<pre><code language="language-bash" class="language-bash">next.configjs
+
+</code></pre>
+<pre><code language="language-javascript" class="language-javascript">/** @type {import(&#39;next&#39;).NextConfig} */
+const nextConfig = {
+    images: {
+        remotePatterns: [
+            {
+                protocol: &#39;https&#39;,
+                hostname: &#39;*.zoom.us&#39;,
+                pathname: &#39;/p/v2/**&#39;,
+            },
+            {
+                protocol: &#39;https&#39;,
+                hostname: &#39;zoom.us&#39;,
+                pathname: &#39;/**&#39;,
+            },
+        ],
+    },
+};
+
+module.exports = nextConfig;
+
+</code></pre>
+
+
+      </google-codelab-step>
+    
   </google-codelab>
 
   <script src="https://storage.googleapis.com/claat-public/native-shim.js"></script>
