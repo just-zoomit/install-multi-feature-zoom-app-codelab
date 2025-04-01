@@ -60,8 +60,12 @@ export async function GET(request: Request) {
   }
 }
 </code></pre>
-<h2 is-upgraded>Add Supabase signin server action</h2>
-<p>Path:</p>
+
+
+      </google-codelab-step>
+    
+      <google-codelab-step label="Add Supabase signin server action" duration="0">
+        <p>Path:</p>
 <pre><code language="language-bash" class="language-bash">app/dashboard/page.tsx
 </code></pre>
 <pre><code language="language-javascript" class="language-javascript">import { createClient } from &#34;@/utils/supabase/server&#34;;
@@ -134,13 +138,17 @@ export const signOutAction = async () =&gt; {
   return redirect(&#34;/&#34;);
 };
 </code></pre>
-<h2 is-upgraded>Add Supabase server</h2>
-<p>Path:</p>
+
+
+      </google-codelab-step>
+    
+      <google-codelab-step label="Add Supabase server" duration="0">
+        <p>Path:</p>
 <pre><code language="language-bash" class="language-bash">supabase/client.ts
 
 </code></pre>
 <p>middleware.ts</p>
-<pre><code language="language-javasript" class="language-javasript">import { createServerClient } from &#34;@supabase/ssr&#34;;
+<pre><code language="language-javascript" class="language-javascript">import { createServerClient } from &#34;@supabase/ssr&#34;;
 import { cookies } from &#34;next/headers&#34;;
 
 export const createClient = async () =&gt; {
@@ -176,7 +184,7 @@ export const createClient = async () =&gt; {
 
 </code></pre>
 <p>middleware.ts</p>
-<pre><code language="language-javasript" class="language-javasript">import { createBrowserClient } from &#34;@supabase/ssr&#34;;
+<pre><code language="language-javascript" class="language-javascript">import { createBrowserClient } from &#34;@supabase/ssr&#34;;
 
 export const createClient = () =&gt;
   createBrowserClient(
